@@ -30,14 +30,30 @@ OHAENG_COLORS = {
     "수": (33, 150, 243),
 }
 
-FONT_PATH = "/System/Library/Fonts/AppleSDGothicNeo.ttc"
-FONT_PATH_FALLBACK = "/System/Library/Fonts/Supplemental/AppleGothic.ttf"
+FONT_CANDIDATES = [
+    # macOS
+    "/System/Library/Fonts/AppleSDGothicNeo.ttc",
+    "/System/Library/Fonts/Supplemental/AppleGothic.ttf",
+    # Windows — 맑은 고딕
+    r"C:\Windows\Fonts\malgun.ttf",
+    r"C:\Windows\Fonts\malgunbd.ttf",
+    # Linux
+    "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+    "/usr/share/fonts/truetype/nanum/NanumGothic.ttf",
+]
 
 
 def _get_font_path() -> str:
-    if os.path.exists(FONT_PATH):
-        return FONT_PATH
-    return FONT_PATH_FALLBACK
+    for path in FONT_CANDIDATES:
+        if os.path.exists(path):
+            return path
+    raise FileNotFoundError(
+        "한글 폰트를 찾을 수 없습니다. "
+        "Windows: 맑은 고딕(malgun.ttf), "
+        "macOS: AppleSDGothicNeo, "
+        "Linux: NotoSansCJK 또는 NanumGothic 설치 필요"
+    )
 
 
 def _verdict_color(verdict: str) -> tuple:
