@@ -142,6 +142,23 @@ class RadarResult(BaseModel):
     weakest: str = ""
 
 
+# ── 연도별 이벤트 예측 ──
+class YearlyEvent(BaseModel):
+    category: str = Field(..., description="카테고리 (career/wealth/relationship/love/health/change)")
+    title: str = Field(..., description="이벤트 제목 (예: 승진 가능성 높음)")
+    description: str = Field(default="", description="구체적 설명 2~3문장")
+    probability: str = Field(default="중간", description="확률 (높음/중간/낮음)")
+    trigger: str = Field(default="", description="근거 (예: 세운 정관 + 대운 인성 = 관인상생)")
+    advice: str = Field(default="", description="조언")
+
+
+class PersonEncounter(BaseModel):
+    ten_god: str = Field(..., description="세운 십신")
+    person_type: str = Field(..., description="인물 유형 (예: 신뢰할 수 있는 리더)")
+    context: str = Field(default="", description="만남의 맥락")
+    influence: str = Field(default="중립", description="영향 (긍정적/부정적/중립)")
+
+
 # ── 궁합 ──
 class CompatibilityResult(BaseModel):
     total_score: float = Field(..., description="궁합 총점 (0~100)")
@@ -180,6 +197,10 @@ class YearlyResult(BaseModel):
     interactions_with_seun: list[InteractionEntry] = Field(default_factory=list)
     radar: RadarResult | None = None
     summary: str = ""
+    yearly_events: list[YearlyEvent] = Field(default_factory=list, description="구체적 사건 예측")
+    person_encounters: list[PersonEncounter] = Field(default_factory=list, description="만남의 인물 유형")
+    current_daeun: DaeunEntry | None = Field(default=None, description="해당 연도가 속한 대운")
+    overall_fortune: str = Field(default="", description="종합 운세 한 줄")
 
 
 class SinsalResult(BaseModel):

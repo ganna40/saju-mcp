@@ -31,6 +31,7 @@ from core.report import generate_report
 from core.compatibility_report import generate_compat_report
 from core.export import export_saju_report, export_compat_report
 from core.export_pdf import export_saju_pdf, export_compat_pdf
+from core.yearly_events import predict_yearly_events
 
 server = FastMCP(
     name="saju-mcp",
@@ -258,6 +259,35 @@ def saju_yearly(
 
     radar = calc_radar(pillars, strength, yongshin, seun)
 
+    # 현재 대운 찾기
+    current_daeun = None
+    target_age = target_year - year + 1
+    for d in daeun:
+        if d.age_start <= target_age <= d.age_end:
+            current_daeun = d
+            break
+    if current_daeun:
+        day_stem = pillars.day.stem
+        current_daeun.ten_god_stem = calc_ten_god(day_stem, current_daeun.stem)
+        current_daeun.ten_god_branch = calc_ten_god_for_branch(day_stem, current_daeun.branch)
+
+    # 구체적 사건 예측
+    yearly_events = []
+    person_encounters = []
+    overall_fortune = ""
+    if seun:
+        yearly_events, person_encounters, overall_fortune = predict_yearly_events(
+            pillars=pillars,
+            seun=seun,
+            daeun=current_daeun,
+            strength=strength,
+            yongshin=yongshin,
+            pattern=pattern,
+            activated_sinsal=activated,
+            seun_interactions=seun_interactions,
+            gender=gender,
+        )
+
     # 요약
     summary_parts = []
     if seun:
@@ -277,6 +307,10 @@ def saju_yearly(
         interactions_with_seun=seun_interactions,
         radar=radar,
         summary=" | ".join(summary_parts),
+        yearly_events=yearly_events,
+        person_encounters=person_encounters,
+        current_daeun=current_daeun,
+        overall_fortune=overall_fortune,
     )
     return result.model_dump()
 
