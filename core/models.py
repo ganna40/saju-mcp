@@ -187,6 +187,17 @@ class SajuAnalysisResult(BaseModel):
     daeun: list[DaeunEntry] = Field(default_factory=list)
     day_stem_traits: str = ""
     elem_info: dict = Field(default_factory=dict, description="용신 오행 관련 건강/음식/색상/방향 정보")
+    # ── 신규 전문가 분석 ──
+    twelve_stages: list[dict] = Field(default_factory=list, description="십이운성 (4주 각 지지)")
+    gongmang: dict = Field(default_factory=dict, description="공망 (비어있는 지지)")
+    johu: dict = Field(default_factory=dict, description="조후용신 (계절 조절)")
+    naeum: dict = Field(default_factory=dict, description="납음오행 (60갑자 소리오행)")
+    palace: list[dict] = Field(default_factory=list, description="궁위 분석 (4궁)")
+    interpretation: dict = Field(default_factory=dict, description="해석 힌트 (메타포/맥락/스토리)")
+    # ── 전문가 교차 분석 (v2) ──
+    cross_insights: list[CrossInsight] = Field(default_factory=list, description="교차 분석 인사이트")
+    retrodictions: list[Retrodiction] = Field(default_factory=list, description="과거 역추적")
+    narrative: SajuNarrative | None = Field(default=None, description="종합 서사")
 
 
 class YearlyResult(BaseModel):
@@ -225,6 +236,24 @@ class SajuReport(BaseModel):
     four_pillars_summary: str = Field(default="", description="사주 요약 (예: 경오 신사 경진 계미)")
     overall: ReportSection | None = Field(default=None, description="총평")
     sections: list[ReportSection] = Field(default_factory=list, description="개별 섹션 (성격~적성)")
+    # ── 전문가 분석 데이터 ──
+    four_pillars: FourPillars | None = Field(default=None, description="사주 원국 전체")
+    strength: StrengthResult | None = Field(default=None, description="신강/신약")
+    pattern: PatternResult | None = Field(default=None, description="격국")
+    yongshin: YongshinResult | None = Field(default=None, description="용신")
+    ten_gods: list[TenGodEntry] = Field(default_factory=list, description="십신 목록")
+    interactions: list[InteractionEntry] = Field(default_factory=list, description="합충형파해")
+    sinsal: list[SinsalEntry] = Field(default_factory=list, description="신살")
+    daeun: list[DaeunEntry] = Field(default_factory=list, description="대운")
+    radar: RadarResult | None = Field(default=None, description="6축 레이더")
+    day_stem_traits: str = Field(default="", description="일간 성격")
+    elem_info: dict = Field(default_factory=dict, description="용신 오행 관련 건강/음식/색상/방향 정보")
+    twelve_stages: list[dict] = Field(default_factory=list, description="십이운성 (4주 각 지지)")
+    gongmang: dict = Field(default_factory=dict, description="공망 (비어있는 지지)")
+    johu: dict = Field(default_factory=dict, description="조후용신 (계절 조절)")
+    naeum: dict = Field(default_factory=dict, description="납음오행 (60갑자 소리오행)")
+    palace: list[dict] = Field(default_factory=list, description="궁위 분석 (4궁)")
+    interpretation: dict = Field(default_factory=dict, description="해석 힌트 (메타포/맥락/스토리)")
 
 
 # ── 궁합 보고서 ──
@@ -249,3 +278,54 @@ class CompatReport(BaseModel):
     sections: list[CompatReportSection] = Field(default_factory=list)
     ohaeng_table: list[dict] = Field(default_factory=list, description="오행별 비교표")
     advice: list[str] = Field(default_factory=list, description="현실 조언")
+
+
+# ── 교차 분석 ──
+class CrossInsight(BaseModel):
+    pattern_name: str = Field(..., description="패턴 이름 (예: 식상생재, 관인상생)")
+    evidence: list[str] = Field(default_factory=list, description="근거 데이터")
+    causal_chain: str = Field(default="", description="인과 체인 (~이므로 → ~하게 되고 → ~)")
+    life_impact: str = Field(default="", description="실생활 영향")
+    warning: str = Field(default="", description="주의사항")
+    priority: int = Field(default=3, ge=1, le=5, description="중요도 1(최고)~5")
+
+
+# ── 과거 역추적 ──
+class Retrodiction(BaseModel):
+    age: int = Field(..., description="해당 나이")
+    year: int = Field(..., description="서력 연도")
+    daeun_info: str = Field(default="", description="대운 정보 (예: 갑인 대운 시작)")
+    ten_god_context: str = Field(default="", description="십신 맥락 설명")
+    predicted_event: str = Field(default="", description="추정 사건")
+    question_hook: str = Field(default="", description="상담 화법 (혹시 ~세 때...)")
+    confidence: str = Field(default="중간", description="확신도 (높음/중간/낮음)")
+    evidence: list[str] = Field(default_factory=list, description="근거")
+
+
+# ── 시기 조언 ──
+class TimingAdvice(BaseModel):
+    period: str = Field(..., description="시기 (예: 2026년 상반기)")
+    action: str = Field(default="", description="구체적 행동")
+    reason: str = Field(default="", description="사주 근거")
+
+
+# ── 질문 기반 상담 ──
+class ConsultResponse(BaseModel):
+    question: str = Field(..., description="원래 질문")
+    question_type: str = Field(default="", description="질문 분류")
+    answer_summary: str = Field(default="", description="한 줄 답변")
+    detailed_analysis: str = Field(default="", description="상세 분석")
+    cross_insights: list[CrossInsight] = Field(default_factory=list)
+    timing: list[TimingAdvice] = Field(default_factory=list)
+    cautions: list[str] = Field(default_factory=list)
+    action_items: list[str] = Field(default_factory=list)
+
+
+# ── 서사 ──
+class SajuNarrative(BaseModel):
+    one_line: str = Field(default="", description="한 줄 정의 (예: 기술자 팔자)")
+    personality_story: str = Field(default="", description="성격 서사 2~3문단")
+    life_arc: str = Field(default="", description="인생 전체 흐름 서사")
+    current_chapter: str = Field(default="", description="지금 인생의 어떤 시기인지")
+    top3_insights: list[str] = Field(default_factory=list, description="핵심 통찰 3개")
+    practical_advice: list[str] = Field(default_factory=list, description="구체적 실행 조언")

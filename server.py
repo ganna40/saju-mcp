@@ -1,4 +1,4 @@
-"""사주팔자 MCP 서버 — FastMCP 기반 5개 도구."""
+"""사주팔자 MCP 서버 — FastMCP 기반 도구 + 명리학 지식 검색."""
 import sys
 import os
 
@@ -32,6 +32,17 @@ from core.compatibility_report import generate_compat_report
 from core.export import export_saju_report, export_compat_report
 from core.export_pdf import export_saju_pdf, export_compat_pdf
 from core.yearly_events import predict_yearly_events
+from core.twelve_stages import calc_twelve_stages
+from core.gongmang import calc_gongmang
+from core.johu import calc_johu
+from core.naeum import calc_all_naeum
+from core.palace import analyze_palaces
+from core.interpretation import generate_interpretation_hints
+from core.cross_analysis import analyze_cross_patterns
+from core.retrodiction import generate_retrodictions
+from core.narrative_engine import generate_narrative
+from core.deep_consult import deep_consult
+from core.knowledge.searcher import search as knowledge_search, search_by_saju_context, get_stats as knowledge_stats
 
 server = FastMCP(
     name="saju-mcp",
@@ -98,6 +109,43 @@ def saju_analyze(
             "계절": ELEM_SEASON.get(yong_elem, ""),
         }
 
+    # ── 신규 전문가 분석 ──
+    twelve_stages = calc_twelve_stages(pillars)
+    gongmang = calc_gongmang(pillars)
+    johu = calc_johu(pillars)
+    naeum = calc_all_naeum(pillars)
+    palace = analyze_palaces(pillars)
+    interpretation = generate_interpretation_hints(
+        pillars=pillars,
+        strength=strength,
+        pattern=pattern,
+        yongshin=yongshin,
+        interactions=interactions,
+        twelve_stages=twelve_stages,
+        gongmang=gongmang,
+        johu=johu,
+        naeum=naeum,
+        palace=palace,
+    )
+
+    # ── 교차 분석 + 역추적 + 서사 (v2) ──
+    cross_insights = analyze_cross_patterns(
+        pillars=pillars, ten_gods=ten_gods, strength=strength,
+        pattern=pattern, yongshin=yongshin, interactions=interactions,
+        sinsal=sinsal, wealth=wealth, daeun=daeun, gender=gender,
+    )
+    retrodictions = generate_retrodictions(
+        pillars=pillars, daeun=daeun, birth_year=year,
+        interactions=interactions, sinsal=sinsal,
+        strength=strength, yongshin=yongshin, gender=gender,
+    )
+    narrative = generate_narrative(
+        pillars=pillars, strength=strength, pattern=pattern,
+        yongshin=yongshin, ten_gods=ten_gods,
+        cross_insights=cross_insights, retrodictions=retrodictions,
+        wealth=wealth, daeun=daeun, gender=gender, birth_year=year,
+    )
+
     result = SajuAnalysisResult(
         birth_info={"year": year, "month": month, "day": day,
                      "hour": hour, "minute": minute, "gender": gender},
@@ -114,6 +162,15 @@ def saju_analyze(
         daeun=daeun,
         day_stem_traits=DAY_STEM_TRAITS.get(day_stem, ""),
         elem_info=elem_info,
+        twelve_stages=twelve_stages,
+        gongmang=gongmang,
+        johu=johu,
+        naeum=naeum,
+        palace=palace,
+        interpretation=interpretation,
+        cross_insights=cross_insights,
+        retrodictions=retrodictions,
+        narrative=narrative,
     )
     return result.model_dump()
 
@@ -407,6 +464,38 @@ def saju_report(
     life_events = calc_life_events(pillars, daeun, strength, yongshin)
     radar = calc_radar(pillars, strength, yongshin)
 
+    # ── 전문가 분석 모듈 ──
+    twelve_stages = calc_twelve_stages(pillars)
+    gongmang = calc_gongmang(pillars)
+    johu = calc_johu(pillars)
+    naeum = calc_all_naeum(pillars)
+    palace = analyze_palaces(pillars)
+    interpretation = generate_interpretation_hints(
+        pillars=pillars,
+        strength=strength,
+        pattern=pattern,
+        yongshin=yongshin,
+        interactions=interactions,
+        twelve_stages=twelve_stages,
+        gongmang=gongmang,
+        johu=johu,
+        naeum=naeum,
+        palace=palace,
+    )
+
+    # 용신 오행 관련 정보
+    yong_elem = yongshin.yongshin
+    elem_info = {}
+    if yong_elem:
+        elem_info = {
+            "용신오행": yong_elem,
+            "건강": ELEM_ORGAN.get(yong_elem, {}),
+            "음식": ELEM_FOOD.get(yong_elem, ""),
+            "색상": ELEM_COLOR.get(yong_elem, ""),
+            "방향": ELEM_DIRECTION.get(yong_elem, ""),
+            "계절": ELEM_SEASON.get(yong_elem, ""),
+        }
+
     birth_info = {"year": year, "month": month, "day": day,
                   "hour": hour, "minute": minute, "gender": gender}
 
@@ -424,6 +513,14 @@ def saju_report(
         life_events=life_events,
         gender=gender,
         birth_info=birth_info,
+        day_stem_traits=DAY_STEM_TRAITS.get(day_stem, ""),
+        elem_info=elem_info,
+        twelve_stages=twelve_stages,
+        gongmang=gongmang,
+        johu=johu,
+        naeum=naeum,
+        palace=palace,
+        interpretation=interpretation,
     )
     return report.model_dump()
 
@@ -543,6 +640,31 @@ def saju_export(
         wealth = calc_wealth(pillars, strength, pattern, interactions, daeun)
         life_events = calc_life_events(pillars, daeun, strength, yongshin)
         radar = calc_radar(pillars, strength, yongshin)
+
+        # 전문가 분석 모듈
+        twelve_stages = calc_twelve_stages(pillars)
+        gongmang = calc_gongmang(pillars)
+        johu = calc_johu(pillars)
+        naeum = calc_all_naeum(pillars)
+        palace = analyze_palaces(pillars)
+        interpretation = generate_interpretation_hints(
+            pillars=pillars, strength=strength, pattern=pattern,
+            yongshin=yongshin, interactions=interactions,
+            twelve_stages=twelve_stages, gongmang=gongmang,
+            johu=johu, naeum=naeum, palace=palace,
+        )
+        yong_elem = yongshin.yongshin
+        elem_info = {}
+        if yong_elem:
+            elem_info = {
+                "용신오행": yong_elem,
+                "건강": ELEM_ORGAN.get(yong_elem, {}),
+                "음식": ELEM_FOOD.get(yong_elem, ""),
+                "색상": ELEM_COLOR.get(yong_elem, ""),
+                "방향": ELEM_DIRECTION.get(yong_elem, ""),
+                "계절": ELEM_SEASON.get(yong_elem, ""),
+            }
+
         birth_info = {"year": year, "month": month, "day": day,
                       "hour": hour, "minute": minute, "gender": gender}
         report = generate_report(
@@ -551,6 +673,14 @@ def saju_export(
             interactions=interactions, wealth=wealth, radar=radar,
             daeun=daeun, life_events=life_events, gender=gender,
             birth_info=birth_info,
+            day_stem_traits=DAY_STEM_TRAITS.get(day_stem, ""),
+            elem_info=elem_info,
+            twelve_stages=twelve_stages,
+            gongmang=gongmang,
+            johu=johu,
+            naeum=naeum,
+            palace=palace,
+            interpretation=interpretation,
         )
         if use_pdf:
             filepath = export_saju_pdf(report, output_dir)
@@ -558,6 +688,170 @@ def saju_export(
             filepath = export_saju_report(report, output_dir)
         return {"filepath": filepath, "type": "individual", "format": file_format,
                 "message": f"사주 보고서가 저장되었습니다: {filepath}"}
+
+
+@server.tool()
+def saju_knowledge(
+    query: str,
+    top_k: int = 5,
+    session_filter: int = 0,
+) -> dict:
+    """명리학 강의 지식 검색.
+
+    명리학 강의 원문에서 관련 내용을 시맨틱 검색합니다.
+    사주 해석의 이론적 근거를 찾거나, 특정 개념(격국, 용신, 합충 등)의
+    전문가 설명을 검색할 때 사용합니다.
+
+    Args:
+        query: 검색 질의 (예: "편관격의 특성", "공망이 년주에 걸리면", "용신 설정 원칙")
+        top_k: 반환할 결과 수 (기본 5)
+        session_filter: 특정 회차만 검색 (1~10, 0이면 전체)
+    """
+    sf = session_filter if session_filter > 0 else None
+    results = knowledge_search(query, top_k=top_k, session_filter=sf)
+    stats = knowledge_stats()
+
+    return {
+        "query": query,
+        "results": results,
+        "total_results": len(results),
+        "knowledge_base": stats,
+    }
+
+
+@server.tool()
+def saju_knowledge_context(
+    year: int,
+    month: int,
+    day: int,
+    hour: int = 12,
+    minute: int = 0,
+    gender: str = "남",
+    top_k: int = 5,
+) -> dict:
+    """사주 분석 기반 자동 지식 검색.
+
+    생년월일시를 입력하면 해당 사주의 핵심 요소(일간, 격국, 용신, 합충, 신살)를
+    자동 추출하여 관련 명리학 강의 내용을 검색합니다.
+    사주 상담 시 이론적 근거를 자동으로 제공합니다.
+
+    Args:
+        year: 생년 (양력)
+        month: 생월
+        day: 생일
+        hour: 생시 (기본 12)
+        minute: 생분 (기본 0)
+        gender: 성별 (기본 "남")
+        top_k: 반환할 결과 수 (기본 5)
+    """
+    pillars = get_four_pillars(year, month, day, hour, minute)
+    daeun = get_daeun(year, month, day, hour, minute, gender)
+    strength = calc_strength(pillars)
+    pattern = determine_pattern(pillars, strength)
+    yongshin = determine_yongshin(strength, pattern)
+    sinsal = detect_sinsal(pillars, daeun)
+    interactions = detect_interactions(pillars)
+
+    # 컨텍스트 기반 검색
+    results = search_by_saju_context(
+        day_stem=pillars.day.stem,
+        pattern_name=pattern.name,
+        yongshin=yongshin.yongshin,
+        interactions=[i.description for i in interactions],
+        sinsal=[s.name for s in sinsal],
+        strength_label=strength.label,
+        top_k=top_k,
+    )
+
+    return {
+        "saju_context": {
+            "day_stem": pillars.day.stem,
+            "pattern": pattern.name,
+            "yongshin": yongshin.yongshin,
+            "strength": strength.label,
+            "interactions": [i.description for i in interactions],
+            "sinsal": [s.name for s in sinsal],
+        },
+        "lecture_references": results,
+        "total_results": len(results),
+    }
+
+
+@server.tool()
+def saju_consult(
+    question: str,
+    year: int,
+    month: int,
+    day: int,
+    hour: int = 12,
+    minute: int = 0,
+    gender: str = "남",
+    target_year: int = 2026,
+) -> dict:
+    """질문 기반 심층 상담.
+
+    구체적 질문(이직, 재물, 연애, 건강 등)에 맞춰
+    교차 분석 기반의 심층 답변을 생성합니다.
+
+    Args:
+        question: 상담 질문 (예: "이직해도 될까?", "올해 재물운은?", "결혼 시기가 언제야?")
+        year: 생년 (양력)
+        month: 생월
+        day: 생일
+        hour: 생시 (기본 12)
+        minute: 생분 (기본 0)
+        gender: 성별 (기본 "남")
+        target_year: 기준 연도 (기본 2026)
+    """
+    pillars = get_four_pillars(year, month, day, hour, minute)
+    ten_gods = get_all_ten_gods(pillars)
+    daeun_list = get_daeun(year, month, day, hour, minute, gender)
+
+    day_stem = pillars.day.stem
+    for d in daeun_list:
+        d.ten_god_stem = calc_ten_god(day_stem, d.stem)
+        d.ten_god_branch = calc_ten_god_for_branch(day_stem, d.branch)
+
+    strength = calc_strength(pillars)
+    pattern = determine_pattern(pillars, strength)
+    yongshin = determine_yongshin(strength, pattern)
+    sinsal = detect_sinsal(pillars, daeun_list)
+    interactions = detect_interactions(pillars)
+    wealth = calc_wealth(pillars, strength, pattern, interactions, daeun_list)
+
+    # 교차 분석
+    cross_insights = analyze_cross_patterns(
+        pillars=pillars, ten_gods=ten_gods, strength=strength,
+        pattern=pattern, yongshin=yongshin, interactions=interactions,
+        sinsal=sinsal, wealth=wealth, daeun=daeun_list, gender=gender,
+    )
+
+    # 세운 (target_year)
+    seun_list = get_seun(year, month, day, hour, minute, gender, target_year)
+    seun = seun_list[0] if seun_list else None
+    if seun:
+        seun.ten_god_stem = calc_ten_god(day_stem, seun.stem)
+        seun.ten_god_branch = calc_ten_god_for_branch(day_stem, seun.branch)
+
+    result = deep_consult(
+        question=question,
+        pillars=pillars,
+        ten_gods=ten_gods,
+        strength=strength,
+        pattern=pattern,
+        yongshin=yongshin,
+        interactions=interactions,
+        sinsal=sinsal,
+        wealth=wealth,
+        daeun=daeun_list,
+        cross_insights=cross_insights,
+        gender=gender,
+        birth_year=year,
+        target_year=target_year,
+        seun=seun,
+    )
+
+    return result.model_dump()
 
 
 if __name__ == "__main__":
