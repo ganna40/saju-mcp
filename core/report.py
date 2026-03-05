@@ -608,6 +608,15 @@ def generate_report(
     life_events: list[LifeEvent],
     gender: str = "남",
     birth_info: dict | None = None,
+    # ── 전문가 분석 데이터 (선택) ──
+    day_stem_traits: str = "",
+    elem_info: dict | None = None,
+    twelve_stages: list[dict] | None = None,
+    gongmang: dict | None = None,
+    johu: dict | None = None,
+    naeum: dict | None = None,
+    palace: list[dict] | None = None,
+    interpretation: dict | None = None,
 ) -> SajuReport:
     """성패 관점 종합 보고서 생성."""
     sections: list[ReportSection] = []
@@ -642,4 +651,22 @@ def generate_report(
         four_pillars_summary=f"{pillars.year.stem}{pillars.year.branch} {pillars.month.stem}{pillars.month.branch} {pillars.day.stem}{pillars.day.branch} {pillars.hour.stem}{pillars.hour.branch}",
         overall=sec_overall,
         sections=sections,
+        # ── 전문가 분석 데이터 ──
+        four_pillars=pillars,
+        strength=strength,
+        pattern=pattern,
+        yongshin=yongshin,
+        ten_gods=ten_gods,
+        interactions=interactions,
+        sinsal=sinsal,
+        daeun=daeun,
+        radar=radar,
+        day_stem_traits=day_stem_traits,
+        elem_info=elem_info or {},
+        twelve_stages=twelve_stages or [],
+        gongmang=gongmang or {},
+        johu=johu or {},
+        naeum=naeum or {},
+        palace=palace or [],
+        interpretation=interpretation or {},
     )
